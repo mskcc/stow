@@ -163,13 +163,20 @@ def parse_args():
     parser.add_argument(
         "--label",
         action="append",
-        nargs=3,
         required=True,
-        metavar=("LABEL", "SOURCE_DIR", "BASE_URL"),
-        help=(
-            "An environment to back up: a label (e.g. stage/prod), the directory containing uuid "
-            "run folders, and the server base URL (e.g. http://voyager:5003/). Repeatable."
-        ),
+        help="A label for an environment to back up (e.g. stage/prod). Repeatable.",
+    )
+    parser.add_argument(
+        "--source-dir",
+        action="append",
+        required=True,
+        help="Directory containing uuid run folders, paired positionally with --label. Repeatable.",
+    )
+    parser.add_argument(
+        "--base-url",
+        action="append",
+        required=True,
+        help="Server base URL (e.g. http://voyager:5003/), paired positionally with --label. Repeatable.",
     )
     parser.add_argument("--compress", action="store_true", help="Compress backup-root into a .tar.gz when done.")
     parser.add_argument(
@@ -203,13 +210,16 @@ def setup_logging(backup_root):
 
 def main():
     args = parse_args()
+    if not (len(args.label) == len(args.source_dir) == len(args.base_url)):
+        raise SystemExit("--label, --source-dir, and --base-url must be given the same number of times.")
+
     backup_root = os.path.abspath(args.backup_root)
     os.makedirs(backup_root, exist_ok=True)
     setup_logging(backup_root)
 
     username, password = prompt_credentials()
 
-    for env_label, source_dir, base_url in args.label:
+    for env_label, source_dir, base_url in zip(args.label, args.source_dir, args.base_url):
         config = {
             "source_dir": source_dir,
             "base_url": base_url,

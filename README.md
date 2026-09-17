@@ -51,17 +51,22 @@ pip install -r requirements.txt
 ```bash
 python3 stow.py \
   --backup-root /path/to/backups \
-  --label stage /path/to/stage/runs http://voyager:5003/ \
-  --label prod /path/to/prod/runs http://voyager-prod:5003/ \
+  --label stage --source-dir /path/to/stage/runs --base-url http://voyager:5003/ \
+  --label prod --source-dir /path/to/prod/runs --base-url http://voyager-prod:5003/ \
   --compress
 ```
 
 Arguments:
 
 - `--backup-root` — destination directory for all backups (created if missing).
-- `--label LABEL SOURCE_DIR BASE_URL` — one environment to back up: a label (e.g. `stage`/`prod`),
-  the directory containing uuid run folders, and the server base URL. Repeat `--label` for
-  multiple environments in the same run; all are backed up into the same `--backup-root`.
+- `--label` — a label for an environment to back up (e.g. `stage`/`prod`). Repeatable.
+- `--source-dir` — directory containing uuid run folders, paired positionally with `--label`. Repeatable.
+- `--base-url` — server base URL (e.g. `http://voyager:5003/`), paired positionally with `--label`. Repeatable.
+
+`--label`, `--source-dir`, and `--base-url` must each be given the same number of times — the
+Nth occurrence of each forms one environment, and all environments are backed up into the same
+`--backup-root`.
+
 - `--compress` — optional flag to compress the entire backup root into a `.tar.gz` archive
   once all environments are done.
 - `--archive-name` — base filename (without extension) for the compressed archive. Defaults
