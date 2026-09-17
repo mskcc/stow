@@ -161,7 +161,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description="Back up Voyager/Ridgeback run logs into a structured tree.")
     parser.add_argument("--backup-root", required=True, help="Destination directory for all backups.")
     parser.add_argument(
-        "--env",
+        "--label",
         action="append",
         nargs=3,
         required=True,
@@ -209,7 +209,7 @@ def main():
 
     username, password = prompt_credentials()
 
-    for env_label, source_dir, base_url in args.env:
+    for env_label, source_dir, base_url in args.label:
         config = {
             "source_dir": source_dir,
             "base_url": base_url,
