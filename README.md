@@ -11,7 +11,7 @@ files into a clean, organized backup tree — keyed by org, pipeline, version, a
 
 For each uuid folder found in a source directory:
 
-1. Looks up `{server_url}/v0/jobs/{uuid}/` (HTTP Basic Auth) to get the job's JSON.
+1. Looks up the uuid in the Ridgeback API: `{server_url}/v0/jobs/{uuid}/` (HTTP Basic Auth) to get the job's JSON.
 2. Extracts the GitHub org, entrypoint name, and version from the job JSON.
 3. Copies `.json`, `.log`, and `.txt` files from the run folder into the backup tree,
    preserving relative directory structure. Symlinks and `.cwl` files are skipped.
@@ -49,19 +49,26 @@ pip install -r requirements.txt
 ## Usage
 
 ```bash
-python3 stow.py
+python3 stow.py \
+  --backup-root /path/to/backups \
+  --env stage /path/to/stage/runs http://voyager:5003/ \
+  --env prod /path/to/prod/runs http://voyager-prod:5003/ \
+  --compress
 ```
 
-You'll be prompted for:
+Arguments:
 
-1. **Backup root** — destination directory for all backups (asked once).
-2. Per environment (repeatable):
-   - Source directory containing uuid run folders
-   - Server URL (e.g. `http://voyager:5003/`)
-   - Username / password (password input is hidden)
-   - An environment label (e.g. `stage`, `prod`)
-   - Whether to back up another environment
-3. Whether to compress the entire backup root into a `.tar.gz` archive when done.
+- `--backup-root` — destination directory for all backups (created if missing).
+- `--env LABEL SOURCE_DIR BASE_URL` — one environment to back up: a label (e.g. `stage`/`prod`),
+  the directory containing uuid run folders, and the server base URL. Repeat `--env` for
+  multiple environments in the same run; all are backed up into the same `--backup-root`.
+- `--compress` — optional flag to compress the entire backup root into a `.tar.gz` archive
+  once all environments are done.
+- `--archive-name` — base filename (without extension) for the compressed archive. Defaults
+  to `backup` (i.e. produces `backup.tar.gz` next to `--backup-root`). Only used with `--compress`.
+
+You'll only be prompted interactively for the **username** and **password** (password input
+is hidden) used to authenticate to the API for every listed environment.
 
 A log of the run is written to both the console and `{backup_root}/backup.log`.
 

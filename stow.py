@@ -8,6 +8,7 @@ the full job JSON alongside them. Multiple environments can be backed up into
 the same backup root, which can optionally be compressed at the end.
 """
 
+import argparse
 import getpass
 import json
 import logging
@@ -42,7 +43,13 @@ def fetch_job_json(base_url, job_uuid, username, password):
         response.raise_for_status()
         return response.json()
     except requests.RequestException as exc:
-        logger.warning("Failed to fetch job JSON for %s from %s: %s", job_uuid, url, exc)
+        # include response body/headers so auth-scheme mismatches are diagnosable
+        detail = ""
+        if exc.response is not None:
+            www_auth = exc.response.headers.get("WWW-Authenticate")
+            body = exc.response.text[:500]
+            detail = f" | WWW-Authenticate={www_auth!r} | body={body!r}"
+        logger.warning("Failed to fetch job JSON for %s from %s: %s%s", job_uuid, url, exc, detail)
         return None
     except ValueError as exc:
         logger.warning("Invalid JSON in response for %s from %s: %s", job_uuid, url, exc)
@@ -150,36 +157,34 @@ def run_env(config, backup_root):
     )
 
 
-def prompt_backup_root():
-    """Ask once for the destination backup root directory; create it if missing."""
-    while True:
-        path = input("Enter the backup destination directory: ").strip()
-        if not path:
-            print("Path cannot be empty.")
-            continue
-        os.makedirs(path, exist_ok=True)
-        return os.path.abspath(path)
+def parse_args():
+    parser = argparse.ArgumentParser(description="Back up Voyager/Ridgeback run logs into a structured tree.")
+    parser.add_argument("--backup-root", required=True, help="Destination directory for all backups.")
+    parser.add_argument(
+        "--env",
+        action="append",
+        nargs=3,
+        required=True,
+        metavar=("LABEL", "SOURCE_DIR", "BASE_URL"),
+        help=(
+            "An environment to back up: a label (e.g. stage/prod), the directory containing uuid "
+            "run folders, and the server base URL (e.g. http://voyager:5003/). Repeatable."
+        ),
+    )
+    parser.add_argument("--compress", action="store_true", help="Compress backup-root into a .tar.gz when done.")
+    parser.add_argument(
+        "--archive-name",
+        default="backup",
+        help="Base filename (without extension) for the compressed archive. Defaults to 'backup'.",
+    )
+    return parser.parse_args()
 
 
-def prompt_env_config():
-    """Ask for one environment's source dir, server URL, credentials, and label."""
-    source_dir = input("Enter the path to the directory containing uuid run folders: ").strip()
-    base_url = input("Enter the server URL (e.g. http://voyager:5003/): ").strip()
+def prompt_credentials():
+    """Ask for the username/password used to authenticate to every environment's API."""
     username = input("Enter the username: ").strip()
     password = getpass.getpass("Enter the password: ")
-    env_label = input("Enter a label for this environment (e.g. stage/prod): ").strip()
-    return {
-        "source_dir": source_dir,
-        "base_url": base_url,
-        "username": username,
-        "password": password,
-        "env_label": env_label,
-    }
-
-
-def prompt_yes_no(question):
-    answer = input(f"{question} (y/n): ").strip().lower()
-    return answer in ("y", "yes")
+    return username, password
 
 
 def setup_logging(backup_root):
@@ -197,17 +202,26 @@ def setup_logging(backup_root):
 
 
 def main():
-    backup_root = prompt_backup_root()
+    args = parse_args()
+    backup_root = os.path.abspath(args.backup_root)
+    os.makedirs(backup_root, exist_ok=True)
     setup_logging(backup_root)
 
-    while True:
-        config = prompt_env_config()
-        run_env(config, backup_root)
-        if not prompt_yes_no("Add another source directory / environment?"):
-            break
+    username, password = prompt_credentials()
 
-    if prompt_yes_no("Compress the entire backup directory?"):
-        archive_path = shutil.make_archive(backup_root, "gztar", backup_root)
+    for env_label, source_dir, base_url in args.env:
+        config = {
+            "source_dir": source_dir,
+            "base_url": base_url,
+            "username": username,
+            "password": password,
+            "env_label": env_label,
+        }
+        run_env(config, backup_root)
+
+    if args.compress:
+        archive_base = os.path.join(os.path.dirname(backup_root), args.archive_name)
+        archive_path = shutil.make_archive(archive_base, "gztar", backup_root)
         logger.info("Created archive: %s", archive_path)
 
 
