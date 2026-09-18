@@ -57,6 +57,18 @@ def fetch_job_json(base_url, job_uuid, username, password):
         return None
 
 
+def credentials_are_valid(base_url, username, password):
+    """Return whether credentials can access the Voyager jobs endpoint."""
+    url = urljoin(base_url.rstrip("/") + "/", "v0/jobs/")
+    try:
+        response = requests.get(url, auth=HTTPBasicAuth(username, password), timeout=30)
+        response.raise_for_status()
+        return True
+    except requests.RequestException as exc:
+        logger.warning("Credential check failed for %s: %s", url, exc)
+        return False
+
+
 def extract_metadata(job_json):
     """Pull the backup path metadata out of a job JSON, or return None."""
     try:
@@ -235,7 +247,11 @@ def main():
     configs = []
     for env_label, source_dir, base_url in zip(args.label, args.source_dir, args.base_url):
         logger.info("Credentials for environment '%s' (%s)", env_label, base_url)
-        username, password = prompt_credentials()
+        while True:
+            username, password = prompt_credentials()
+            if credentials_are_valid(base_url, username, password):
+                break
+            logger.warning("Credentials were not accepted. Please try again.")
         configs.append(
             {
                 "source_dir": source_dir,

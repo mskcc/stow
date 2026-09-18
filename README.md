@@ -76,7 +76,8 @@ Nth occurrence of each forms one environment, and all environments are backed up
   contains only the `backup/` directory.
 
 Before any backup starts, you'll be prompted interactively for the **username** and **password**
-(password input is hidden) for each listed environment.
+(password input is hidden) for each listed environment. The script verifies each credential pair
+against that environment's `/v0/jobs/` endpoint and re-prompts when access is denied.
 
 A log of the run is written to both the console and `{backup_root}/{archive_name}/backup.log`.
 
