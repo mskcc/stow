@@ -25,14 +25,15 @@ whole backup root into a single `.tar.gz` archive at the end.
 
 ```
 {backup_root}/
-  {env_label}/
-    {org}/
-      {entrypoint_name}/
-        {version}/
-          {uuid}/
-            run.json
-            files/
-              ...   (relative paths preserved from the source run folder)
+  {archive_name}/
+    {env_label}/
+      {org}/
+        {entrypoint_name}/
+          {version}/
+            {uuid}/
+              run.json
+              files/
+                ...   (relative paths preserved from the source run folder)
 ```
 
 ## Requirements
@@ -58,7 +59,7 @@ python3 stow.py \
 
 Arguments:
 
-- `--backup-root` — destination directory for all backups (created if missing).
+- `--backup-root` — destination directory for the named backup folder and optional archive (created if missing).
 - `--label` — a label for an environment to back up (e.g. `stage`/`prod`). Repeatable.
 - `--source-dir` — directory containing uuid run folders, paired positionally with `--label`. Repeatable.
 - `--base-url` — server base URL (e.g. `http://voyager:5003/`), paired positionally with `--label`. Repeatable.
@@ -69,14 +70,14 @@ Nth occurrence of each forms one environment, and all environments are backed up
 
 - `--compress` — optional flag to compress the entire backup root into a `.tar.gz` archive
   once all environments are done.
-- `--archive-name` — base filename (without extension) for the compressed archive. Defaults
-  to `backup` (i.e. produces `backup.tar.gz` next to `--backup-root`). The archive contents are rooted
-  at a directory with this name. Only used with `--compress`.
+- `--archive-name` — name for the backup folder and compressed archive. Defaults to `backup`, which
+  creates `{backup_root}/backup/` and, with `--compress`, `{backup_root}/backup.tar.gz`. The archive
+  contains only the `backup/` directory.
 
 Before any backup starts, you'll be prompted interactively for the **username** and **password**
 (password input is hidden) for each listed environment.
 
-A log of the run is written to both the console and `{backup_root}/backup.log`.
+A log of the run is written to both the console and `{backup_root}/{archive_name}/backup.log`.
 
 ## Notes
 

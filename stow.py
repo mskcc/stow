@@ -195,12 +195,14 @@ def prompt_credentials():
     return username, password
 
 
-def create_archive(backup_root, archive_name):
-    """Create an archive beside backup_root with archive_name as its top-level directory."""
-    archive_path = os.path.join(os.path.dirname(backup_root), f"{archive_name}.tar.gz")
+def create_archive(backup_dir):
+    """Archive backup_dir beside itself, preserving its directory name as the tar root."""
+    archive_parent = os.path.dirname(backup_dir)
+    archive_name = os.path.basename(backup_dir)
+    archive_path = os.path.join(archive_parent, f"{archive_name}.tar.gz")
 
     with tarfile.open(archive_path, "w:gz") as archive:
-        archive.add(backup_root, arcname=archive_name)
+        archive.add(backup_dir, arcname=archive_name)
     return archive_path
 
 
@@ -224,8 +226,9 @@ def main():
         raise SystemExit("--label, --source-dir, and --base-url must be given the same number of times.")
 
     backup_root = os.path.abspath(args.backup_root)
-    os.makedirs(backup_root, exist_ok=True)
-    setup_logging(backup_root)
+    backup_dir = os.path.join(backup_root, args.archive_name)
+    os.makedirs(backup_dir, exist_ok=True)
+    setup_logging(backup_dir)
 
     configs = []
     for env_label, source_dir, base_url in zip(args.label, args.source_dir, args.base_url):
@@ -242,10 +245,10 @@ def main():
         )
 
     for config in configs:
-        run_env(config, backup_root)
+        run_env(config, backup_dir)
 
     if args.compress:
-        archive_path = create_archive(backup_root, args.archive_name)
+        archive_path = create_archive(backup_dir)
         logger.info("Created archive: %s", archive_path)
 
 
