@@ -70,10 +70,11 @@ Nth occurrence of each forms one environment, and all environments are backed up
 - `--compress` — optional flag to compress the entire backup root into a `.tar.gz` archive
   once all environments are done.
 - `--archive-name` — base filename (without extension) for the compressed archive. Defaults
-  to `backup` (i.e. produces `backup.tar.gz` next to `--backup-root`). Only used with `--compress`.
+  to `backup` (i.e. produces `backup.tar.gz` next to `--backup-root`). The archive contents are rooted
+  at a directory with this name. Only used with `--compress`.
 
-You'll only be prompted interactively for the **username** and **password** (password input
-is hidden) used to authenticate to the API for every listed environment.
+Before any backup starts, you'll be prompted interactively for the **username** and **password**
+(password input is hidden) for each listed environment.
 
 A log of the run is written to both the console and `{backup_root}/backup.log`.
 

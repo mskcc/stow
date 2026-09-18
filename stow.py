@@ -14,6 +14,7 @@ import json
 import logging
 import os
 import shutil
+import tarfile
 import uuid as uuid_module
 from urllib.parse import urljoin, urlparse
 
@@ -188,10 +189,19 @@ def parse_args():
 
 
 def prompt_credentials():
-    """Ask for the username/password used to authenticate to every environment's API."""
+    """Ask for the username/password used to authenticate to an environment's API."""
     username = input("Enter the username: ").strip()
     password = getpass.getpass("Enter the password: ")
     return username, password
+
+
+def create_archive(backup_root, archive_name):
+    """Create an archive beside backup_root with archive_name as its top-level directory."""
+    archive_path = os.path.join(os.path.dirname(backup_root), f"{archive_name}.tar.gz")
+
+    with tarfile.open(archive_path, "w:gz") as archive:
+        archive.add(backup_root, arcname=archive_name)
+    return archive_path
 
 
 def setup_logging(backup_root):
@@ -217,21 +227,25 @@ def main():
     os.makedirs(backup_root, exist_ok=True)
     setup_logging(backup_root)
 
-    username, password = prompt_credentials()
-
+    configs = []
     for env_label, source_dir, base_url in zip(args.label, args.source_dir, args.base_url):
-        config = {
-            "source_dir": source_dir,
-            "base_url": base_url,
-            "username": username,
-            "password": password,
-            "env_label": env_label,
-        }
+        logger.info("Credentials for environment '%s' (%s)", env_label, base_url)
+        username, password = prompt_credentials()
+        configs.append(
+            {
+                "source_dir": source_dir,
+                "base_url": base_url,
+                "username": username,
+                "password": password,
+                "env_label": env_label,
+            }
+        )
+
+    for config in configs:
         run_env(config, backup_root)
 
     if args.compress:
-        archive_base = os.path.join(os.path.dirname(backup_root), args.archive_name)
-        archive_path = shutil.make_archive(archive_base, "gztar", backup_root)
+        archive_path = create_archive(backup_root, args.archive_name)
         logger.info("Created archive: %s", archive_path)
 
 
