@@ -30,10 +30,11 @@ whole backup root into a single `.tar.gz` archive at the end.
       {org}/
         {entrypoint_name}/
           {version}/
-            {uuid}/
-              run.json
-              files/
-                ...   (relative paths preserved from the source run folder)
+            {status}/
+              {uuid}/
+                run.json
+                files/
+                  ...   (relative paths preserved from the source run folder)
 ```
 
 ## Requirements

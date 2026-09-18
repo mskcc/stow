@@ -58,14 +58,15 @@ def fetch_job_json(base_url, job_uuid, username, password):
 
 
 def extract_metadata(job_json):
-    """Pull org, entrypoint basename, and version out of a job JSON, or None."""
+    """Pull the backup path metadata out of a job JSON, or return None."""
     try:
         github = job_json["app"]["github"]
         repository = github["repository"]
         entrypoint = github["entrypoint"]
         version = github["version"]
+        status = job_json["status"]
     except (KeyError, TypeError) as exc:
-        logger.warning("Job JSON missing required app.github fields: %s", exc)
+        logger.warning("Job JSON missing required metadata: %s", exc)
         return None
 
     # org is the first path segment of the github repo url, e.g. msk-access/chip-var
@@ -80,7 +81,7 @@ def extract_metadata(job_json):
         logger.warning("Could not parse entrypoint basename from: %s", entrypoint)
         return None
 
-    return {"org": org, "entrypoint_base": entrypoint_base, "version": version}
+    return {"org": org, "entrypoint_base": entrypoint_base, "version": version, "status": status}
 
 
 def copy_filtered_files(source_uuid_dir, dest_files_dir):
@@ -110,6 +111,7 @@ def backup_uuid_folder(source_uuid_dir, job_uuid, job_json, metadata, backup_roo
         metadata["org"],
         metadata["entrypoint_base"],
         str(metadata["version"]),
+        str(metadata["status"]),
         job_uuid,
     )
     dest_files_dir = os.path.join(dest_dir, "files")
